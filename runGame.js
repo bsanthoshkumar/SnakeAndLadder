@@ -2,7 +2,8 @@ class Player {
   constructor(name, coin) {
     this.name = name;
     this.coin = coin;
-    this.currentPosition = { row: 9, cell: -1, value: 0 };
+    this.currentRow = 9;
+    this.currentCell = -1;
     this.previousPosition = { row: 0, cell: 0, value: 100 };
     this.ladderPositions = [
       { row: 9, cell: 8, targetRow: 6, targetCell: 6 },
@@ -15,65 +16,53 @@ class Player {
       { row: 1, cell: 6, targetRow: 5, targetCell: 9 }
     ];
   }
-
   getValueForOddRow(randomValue) {
-    let { row, cell } = this.currentPosition;
-    cell += randomValue;
-    if (cell > 9) {
-      row--;
-      cell = 9 - (cell - 10);
+    this.currentCell += randomValue;
+    if (this.currentCell > 9) {
+      this.currentRow--;
+      this.currentCell = 9 - (this.currentCell - 10);
     }
-    this.currentPosition = { row, cell };
   }
 
   getValueForEvenRow(randomValue) {
-    let { row, cell } = this.currentPosition;
-    cell -= randomValue;
-    if (cell < 0) {
-      row--;
-      cell = -1 - cell;
+    this.currentCell -= randomValue;
+    if (this.currentCell < 0) {
+      this.currentRow--;
+      this.currentCell = -1 - this.currentCell;
     }
-    this.currentPosition = { row, cell };
   }
 
   checkForMatching = position => {
-    let { row, cell } = this.currentPosition;
-    if (position.row == row && position.cell == cell) {
-      row = position.targetRow;
-      cell = position.targetCell;
+    const { row, cell, targetRow, targetCell } = position;
+    if (row == this.currentRow && cell == this.currentCell) {
+      this.currentRow = targetRow;
+      this.currentCell = targetCell;
     }
-    this.currentPosition = { row, cell };
   };
 
   changePreviousValue(gameZone) {
-    let { row, cell, value } = this.previousPosition;
-    const currentPosition = this.currentPosition;
+    const { row, cell, value } = this.previousPosition;
     gameZone.rows[row].cells[cell].innerHTML = value;
-    row = currentPosition.row;
-    cell = currentPosition.cell;
-    value =
-      gameZone.rows[currentPosition.row].cells[currentPosition.cell].innerText;
-    this.previousPosition = { row, cell, value };
+    this.previousPosition['row'] = this.currentRow;
+    this.previousPosition['cell'] = this.currentCell;
+    this.previousPosition['value'] =
+      gameZone.rows[this.currentRow].cells[this.currentCell].innerText;
   }
 
   changeCurrentValue(randomValue) {
     const getValue = { 0: this.getValueForEvenRow, 1: this.getValueForOddRow };
     const gameZone = document.getElementById('gameZone');
-    getValue[this.currentPosition.row % 2].bind(this)(randomValue);
+    getValue[this.currentRow % 2].bind(this)(randomValue);
     this.ladderPositions.forEach(this.checkForMatching);
     this.snakePositions.forEach(this.checkForMatching);
     this.changePreviousValue(gameZone);
-    const { row, cell } = this.currentPosition;
-    let currentBox = gameZone.rows[row].cells[cell];
+    let currentBox = gameZone.rows[this.currentRow].cells[this.currentCell];
     const image = `<img src=${this.coin} width="20px" height="15px"/>`;
     currentBox.innerHTML = currentBox.innerHTML + image;
   }
 
   checkWinStatus() {
-    const { row, cell } = this.currentPosition;
-    console.log(this.name);
-    console.log(this.currentPosition);
-    if (row == 0 && cell == 0) {
+    if (this.currentRow == 0 && this.currentCell == 0) {
       const div = document.getElementById('gameTools');
       div.removeChild(document.getElementById('dice'));
       document.getElementById('text').innerText = `${this.name} won the game`;
@@ -104,10 +93,10 @@ const runGame = () => {
     return;
   }
   const currentPlayer = playersList.shift();
-  const { row, cell } = currentPlayer.currentPosition;
+  const { currentRow, currentCell } = currentPlayer;
   const randomValue = Math.ceil(Math.random() * 6);
   document.getElementById('dice').src = `./assets/dice_${randomValue}.png`;
-  if (!(row - 1 < 0 && cell - randomValue < 0)) {
+  if (!(currentRow - 1 < 0 && currentCell - randomValue < 0)) {
     currentPlayer.changeCurrentValue(randomValue);
     currentPlayer.checkWinStatus();
   }
