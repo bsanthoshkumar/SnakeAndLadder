@@ -4,7 +4,9 @@ class Player {
     this.coin = coin;
     this.currentRow = 9;
     this.currentCell = -1;
-    this.previousPosition = { row: 0, cell: 0, value: 100 };
+    this.previousRow = 0;
+    this.previousCell = 0;
+    this.previousValue = 100;
     this.ladderPositions = [
       { row: 9, cell: 8, targetRow: 6, targetCell: 6 },
       { row: 6, cell: 0, targetRow: 3, targetCell: 3 },
@@ -40,33 +42,23 @@ class Player {
     }
   };
 
-  changePreviousValue(gameZone) {
-    const { row, cell, value } = this.previousPosition;
-    gameZone.rows[row].cells[cell].innerHTML = value;
-    this.previousPosition['row'] = this.currentRow;
-    this.previousPosition['cell'] = this.currentCell;
-    this.previousPosition['value'] =
+  updatePreviousValue(gameZone) {
+    this.previousRow = this.currentRow;
+    this.previousCell = this.currentCell;
+    this.previousValue =
       gameZone.rows[this.currentRow].cells[this.currentCell].innerText;
   }
 
-  changeCurrentValue(randomValue) {
+  updateCurrentValue(randomValue) {
     const getValue = { 0: this.getValueForEvenRow, 1: this.getValueForOddRow };
-    const gameZone = document.getElementById('gameZone');
     getValue[this.currentRow % 2].bind(this)(randomValue);
     this.ladderPositions.forEach(this.checkForMatching);
     this.snakePositions.forEach(this.checkForMatching);
-    this.changePreviousValue(gameZone);
-    let currentBox = gameZone.rows[this.currentRow].cells[this.currentCell];
-    const image = `<img src=${this.coin} width="20px" height="15px"/>`;
-    currentBox.innerHTML = currentBox.innerHTML + image;
+    this.updatePreviousValue(gameZone);
   }
 
-  checkWinStatus() {
-    if (this.currentRow == 0 && this.currentCell == 0) {
-      const div = document.getElementById('gameTools');
-      div.removeChild(document.getElementById('dice'));
-      document.getElementById('text').innerText = `${this.name} won the game`;
-    }
+  get checkWinStatus() {
+    return this.currentRow == 0 && this.currentCell == 0;
   }
 }
 
@@ -87,18 +79,41 @@ const createPlayer = () => {
   }
 };
 
+const updateTable = (currentPlayer, gameZone, randomValue) => {
+  gameZone.rows[currentPlayer.previousRow].cells[
+    currentPlayer.previousCell
+  ].innerHTML = currentPlayer.previousValue;
+  currentPlayer.updateCurrentValue(randomValue);
+  let currentBox =
+    gameZone.rows[currentPlayer.currentRow].cells[currentPlayer.currentCell];
+  const image = `<img src=${currentPlayer.coin} width="20px" height="15px"/>`;
+  currentBox.innerHTML = currentBox.innerHTML + image;
+};
+
+const declareWinner = name => {
+  const div = document.getElementById('gameTools');
+  div.removeChild(document.getElementById('dice'));
+  document.getElementById('text').innerText = `${name} won the game`;
+};
+
 const runGame = () => {
   if (playersList.length < 2) {
     alert('Create Atleast two players to play game');
     return;
   }
   const currentPlayer = playersList.shift();
-  const { currentRow, currentCell } = currentPlayer;
   const randomValue = Math.ceil(Math.random() * 6);
+  const { currentRow, currentCell } = currentPlayer;
   document.getElementById('dice').src = `./assets/dice_${randomValue}.png`;
+  const gameZone = document.getElementById('gameZone');
   if (!(currentRow - 1 < 0 && currentCell - randomValue < 0)) {
-    currentPlayer.changeCurrentValue(randomValue);
-    currentPlayer.checkWinStatus();
+    updateTable(currentPlayer, gameZone, randomValue);
+  }
+  console.log(currentPlayer.name);
+  console.log(currentPlayer.currentRow, currentPlayer.currentCell);
+  if (currentPlayer.checkWinStatus) {
+    declareWinner(currentPlayer.name);
+    return;
   }
   playersList.push(currentPlayer);
   document.getElementById(
