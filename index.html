@@ -1,11 +1,11 @@
 <html>
   <head>
-    <title>table</title>
+    <title>Snake & Ladder</title>
     <link rel="stylesheet" href="./styles.css" type="text/css" />
     <script src="runGame.js"></script>
   </head>
   <body>
-    <table border="1" cellpadding="15%" align="center" id="myTable">
+    <table border="1" cellpadding="15%" align="center" id="gameZone">
       <tr>
         <td>100</td>
         <td>99</td>
@@ -129,8 +129,8 @@
     </table>
 
     <br /><br />
-    <div style="display: flex;" id="div">
-      <button class="button" onclick="createPlayer()" id="button1">
+    <div id="gameTools">
+      <button class="button" onclick="createPlayer()" id="newPlayer">
         Create Player
       </button>
       <img
@@ -139,7 +139,7 @@
         onclick="runGame()"
         class="dice"
       />
-      <h1 id="h1"></h1>
+      <h1 id="text"></h1>
     </div>
   </body>
 </html>

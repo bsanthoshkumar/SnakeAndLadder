@@ -40,32 +40,32 @@ class Player {
     }
   };
 
-  changePreviousValue(myTable) {
+  changePreviousValue(gameZone) {
     const { row, cell, value } = this.previousPosition;
-    myTable.rows[row].cells[cell].innerHTML = value;
+    gameZone.rows[row].cells[cell].innerHTML = value;
     this.previousPosition['row'] = this.currentRow;
     this.previousPosition['cell'] = this.currentCell;
     this.previousPosition['value'] =
-      myTable.rows[this.currentRow].cells[this.currentCell].innerText;
+      gameZone.rows[this.currentRow].cells[this.currentCell].innerText;
   }
 
   changeCurrentValue(randomValue) {
     const getValue = { 0: this.getValueForEvenRow, 1: this.getValueForOddRow };
-    const myTable = document.getElementById('myTable');
+    const gameZone = document.getElementById('gameZone');
     getValue[this.currentRow % 2].bind(this)(randomValue);
     this.ladderPositions.forEach(this.checkForMatching);
     this.snakePositions.forEach(this.checkForMatching);
-    this.changePreviousValue(myTable);
-    let currentBox = myTable.rows[this.currentRow].cells[this.currentCell];
+    this.changePreviousValue(gameZone);
+    let currentBox = gameZone.rows[this.currentRow].cells[this.currentCell];
     const image = `<img src=${this.coin} width="20px" height="15px"/>`;
     currentBox.innerHTML = currentBox.innerHTML + image;
   }
 
   checkWinStatus() {
     if (this.currentRow == 0 && this.currentCell == 0) {
-      const div = document.getElementById('div');
+      const div = document.getElementById('gameTools');
       div.removeChild(document.getElementById('dice'));
-      document.getElementById('h1').innerText = `${this.name} won the game`;
+      document.getElementById('text').innerText = `${this.name} won the game`;
     }
   }
 }
@@ -83,7 +83,7 @@ const createPlayer = () => {
   playerName = new Player(playerName, coin);
   playersList.push(playerName);
   if (playersList.length > 2) {
-    document.getElementById('button1').setAttribute('disabled', true);
+    document.getElementById('newPlayer').setAttribute('disabled', true);
   }
 };
 
@@ -101,5 +101,7 @@ const runGame = () => {
     currentPlayer.checkWinStatus();
   }
   playersList.push(currentPlayer);
-  document.getElementById('h1').innerText = `${playersList[0].name} your turn`;
+  document.getElementById(
+    'text'
+  ).innerText = `${playersList[0].name} your turn`;
 };
