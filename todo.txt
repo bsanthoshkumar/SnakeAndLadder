@@ -1,4 +1,6 @@
 --done-- working version of snake And ladder
+to pull out the ladder and snake positions into their independent classes.
+to make the global functions and variables as methods and data of Game class
 
 bugs to fix:-
 --done-- make the class Player pure that it would not change dom elements
