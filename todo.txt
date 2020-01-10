@@ -1,0 +1,7 @@
+--done-- working version of snake And ladder
+
+bugs to fix:-
+make the class Player pure that it would not change dom elements
+make it work for multiple players
+make all players coins visible all the time
+make score board and make the score board visible at all time
