@@ -1,5 +1,6 @@
 const { Server } = require('net');
 const { readFileSync } = require('fs');
+let count = 0;
 
 const badRequestResponse = () => {
   return [`HTTP/1.0 400 File Not Found`, 'Content-Type: text/html', `Content-Length: 0`, '', ''].join('\n');
@@ -30,6 +31,7 @@ const getResponse = function(headers, method, resource) {
 };
 
 const loadGame = function(socket) {
+  count++;
   const remote = { address: socket.remoteAddress, port: socket.remotePort };
   console.log('new Connection', remote);
   socket.setEncoding('utf8');
@@ -41,7 +43,7 @@ const loadGame = function(socket) {
     responses.forEach(res => socket.write(res));
   });
   socket.on('end', () => console.warn(remote, 'ended'));
-  socket.on('close', () => console.warn(remote, 'closed'));
+  socket.on('close', () => console.warn(remote, 'closed\n',`connection no :${co}`));
 };
 
 const main = function() {
