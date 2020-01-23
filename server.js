@@ -1,55 +1,104 @@
 const { Server } = require('net');
-const { readFileSync } = require('fs');
-let count = 0;
+const { readFileSync, existsSync, statSync} = require('fs');
+let visitorCount = 0;
+const STATIC_FOLDER = `${__dirname}/public`
+const CONTENT_TYPES = { css: 'text/css', js: 'text/javascript', png: 'image/png', jpeg: 'image/jpeg' };
 
-const badRequestResponse = () => {
-  return [`HTTP/1.0 400 File Not Found`, 'Content-Type: text/html', `Content-Length: 0`, '', ''].join('\n');
-};
-
-const response = fileDetails => {
-  const { fileType, fileName } = fileDetails;
-  let content;
-  try {
-    content = readFileSync(fileName);
-  } catch (e) {
-    return [badRequestResponse()];
+const collectHeadersAndContent = (result, line) => {
+  if (line === '') {
+    result.body = '';
+    return result;
   }
-  return [ `HTTP/1.0 200 ok\n`, `Content-Type: ${fileType}\n`, `Content-Length: ${content.length + 1}\n`, '\n', content, '\n' ];
+  if ('body' in result) {
+    result.body += line;
+    return result;
+  }
+  const [key, value] = line.split(': ');
+  result.headers[key] = value;
+  return result;
 };
 
-const getFileDetails = resource => {
-  const contentTypes = { css: 'text/css', js: 'text/javascript', png: 'image/png', jpeg: 'image/jpeg' };
-  const extension = resource.split('.')[2];
-  const fileType = contentTypes[extension];
-  const fileName = resource == '/' ? './index.html' : `.${resource}`;
-  return { fileType, fileName };
+class Request {
+  constructor(method, url, headers, body) {
+    this.method = method;
+    this.url = url;
+    this.headers = headers;
+    this.body = body;
+  }
+  static parse(requestText) {
+    const [requestLine, ...headersAndBody] = requestText.split('\r\n');
+    let [method, resource, protocal] = requestLine.split(' ');
+    const {headers, body} = headersAndBody.reduce(collectHeadersAndContent,{headers:{}});
+    if(resource == "/") resource = "/index.html";
+    const request = new Request(method, resource, headers, body);
+    return request;
+  }
+}
+
+class Response {
+  constructor() {
+    this.statusCode = 404;
+    this.headers = [{key:'Content-Length',value:0}]
+  }
+  setHeader(key ,value) {
+    const header = this.headers.find(header=> header.key === key);
+    if(header) header.value = value;
+    else this.headers.push({key, value})
+  }
+  generateHeadersText(){
+    const lines = this.headers.map(header => `${header.key}: ${header.value}`)
+    return lines.join('\r\n')
+  }
+  writeTo(writable){
+    writable.write(`HTTP/1.1 ${this.statusCode}\r\n`);
+    writable.write(this.generateHeadersText());
+    writable.write('\r\n\r\n');
+    this.body && writable.write(this.body);
+  }
+}
+
+const serveStaticFile = request => {
+  const { url } = request;
+  const path = `${STATIC_FOLDER}${url}`;
+  const stat = existsSync(path) && statSync(path);
+  if(!stat || !stat.isFile()) return new Response();
+  const extension = url.split('.')[1];
+  const contentType = CONTENT_TYPES[extension];
+  const content = readFileSync(path);
+  const response = new Response();
+  response.setHeader('Content-Type',contentType);
+  response.setHeader('Content-Length',content.length);
+  response.setHeader('Connection','close')
+  response.statusCode = 200;
+  response.body = content;
+  return response;
 };
 
-const getResponse = function(headers, method, resource) {
-  if (method == 'GET') return response(getFileDetails(resource));
-  return [badRequestResponse()];
+const findHandler = function(request) {
+  if (request.method == 'GET') return serveStaticFile;
+  return () => new Response();
 };
 
-const loadGame = function(socket) {
-  count++;
+const handleRequest = function(socket) {
+  visitorCount++;
   const remote = { address: socket.remoteAddress, port: socket.remotePort };
-  console.log('new Connection', remote);
+  console.warn(`\nconnection no :${visitorCount}\n`,'new Connection', remote);
   socket.setEncoding('utf8');
   socket.on('data', text => {
     console.warn(remote, '\ndata:\n', text);
-    const [requestLine, ...headers] = text.split('\n');
-    const [method, resource, protocal] = requestLine.split(' ');
-    const responses = getResponse(headers, method, resource);
-    responses.forEach(res => socket.write(res));
+    const request = Request.parse(text);
+    const handler = findHandler(request);
+    const response = handler(request);
+    response.writeTo(socket);
   });
   socket.on('end', () => console.warn(remote, 'ended'));
-  socket.on('close', () => console.warn(remote, 'closed\n',`connection no :${co}`));
+  socket.on('close', () => console.warn(remote, 'closed\n'));
 };
 
 const main = function() {
   const server = new Server();
   server.on('listening', () => console.warn('started listening', server.address()));
-  server.on('connection', loadGame);
+  server.on('connection', handleRequest);
   server.listen(3000);
 };
 
