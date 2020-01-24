@@ -4,6 +4,16 @@ let visitorCount = 0;
 const STATIC_FOLDER = `${__dirname}/public`
 const CONTENT_TYPES = { css: 'text/css', js: 'text/javascript', png: 'image/png', jpeg: 'image/jpeg' };
 
+const defaultResponseContent = `
+<html>
+  <head>
+    <title>404 error</title>
+  </head>
+  <body style="background-size: cover;" background="./assets/404error.jpeg">
+  </body>
+</html>
+`;
+
 const collectHeadersAndContent = (result, line) => {
   if (line === '') {
     result.body = '';
@@ -36,9 +46,10 @@ class Request {
 }
 
 class Response {
-  constructor() {
+  constructor(defaultResponseContent) {
     this.statusCode = 404;
-    this.headers = [{key:'Content-Length',value:0}]
+    this.headers = [{key:'Content-Length',value:defaultResponseContent.length},{key:'Content-Type',value:'text/html'}];
+    this.body = defaultResponseContent;
   }
   setHeader(key ,value) {
     const header = this.headers.find(header=> header.key === key);
@@ -61,11 +72,11 @@ const serveStaticFile = request => {
   const { url } = request;
   const path = `${STATIC_FOLDER}${url}`;
   const stat = existsSync(path) && statSync(path);
-  if(!stat || !stat.isFile()) return new Response();
+  if(!stat || !stat.isFile()) return new Response(defaultResponseContent);
   const extension = url.split('.')[1];
   const contentType = CONTENT_TYPES[extension];
   const content = readFileSync(path);
-  const response = new Response();
+  const response = new Response(defaultResponseContent);
   response.setHeader('Content-Type',contentType);
   response.setHeader('Content-Length',content.length);
   response.setHeader('Connection','close')
@@ -76,7 +87,7 @@ const serveStaticFile = request => {
 
 const findHandler = function(request) {
   if (request.method == 'GET') return serveStaticFile;
-  return () => new Response();
+  return () => new Response(defaultResponseContent);
 };
 
 const handleRequest = function(socket) {
